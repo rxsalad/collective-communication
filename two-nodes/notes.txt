@@ -1,0 +1,71 @@
+
+InfiniBand is a high-speed, low-latency networking technology that supports RDMA.
+RoCE (RDMA over Converged Ethernet) brings the same RDMA capabilities over standard Ethernet networks.
+
+Both InfiniBand and RoCE are network technologies—they provide high-speed, low-latency interconnects between machines or devices.
+
+To actually use them for RDMA, we need an RDMA-capable driver (like mlx5_core/ib_core on Linux) and the corresponding libraries (e.g., libibverbs).
+
+
+Hardware: InfiniBand card / RoCE-enabled NIC
+        ↓
+Driver: RDMA driver (mlx5, ibverbs, etc.)
+        ↓
+Libraries: libibverbs, librdmacm
+        ↓
+Apps: NCCL, MPI, or custom RDMA code
+
+
+mlx5 is the Linux kernel driver family for Mellanox / NVIDIA ConnectX-5 (and later) network cards. These are high-performance NICs that can do InfiniBand or RoCE and provide RDMA, GPUDirect, and other acceleration features.
+
+
+
+########## all RDMA / IB devices
+
+##### ls /sys/class/infiniband/
+
+lists the InfiniBand/RoCE HCAs (Host Channel Adapters) detected by your Linux system.
+
+root@vllm-decode-b9cc8b894-nhjtn:/app# ls /sys/class/infiniband/
+mlx5_0  mlx5_1  mlx5_2  mlx5_3  mlx5_4  mlx5_5  mlx5_6  mlx5_7
+
+
+
+##### ibv_devinfo
+
+# ibv_devinfo -v 
+# ibv_devinfo -v | grep GID
+
+Each GPU HCA port has one GID per RoCE version. The GIDs for each InfiniBand / RoCE interface. Link-local IPv6 addresss is used by RoCE v2.
+
+
+root@vllm-decode-b9cc8b894-nhjtn:/app# ibv_devinfo -v | grep GID
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:ad00, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:ad00, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8e90, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8e90, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8eb0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8eb0, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe37:5b0e, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe37:5b0e, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe37:5ab6, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe37:5ab6, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8ea0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8ea0, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:ad70, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:ad70, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:aee0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:aee0, RoCE v2
+
+
+root@vllm-decode-b9cc8b894-nhjtn:/app#  ibv_devices || echo "No IB devices"
+    device                 node GUID
+    ------              ----------------
+    mlx5_0              3a25f3fffe35ad00
+    mlx5_1              3a25f3fffe358e90
+    mlx5_2              3a25f3fffe358eb0
+    mlx5_3              3a25f3fffe375b0e
+    mlx5_4              3a25f3fffe375ab6
+    mlx5_5              3a25f3fffe358ea0
+    mlx5_6              3a25f3fffe35ad70
+    mlx5_7              3a25f3fffe35aee0
