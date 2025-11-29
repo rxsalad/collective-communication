@@ -1,0 +1,920 @@
+
+
+
+#################### Check
+
+# Operator logs
+kubectl -n mpi-operator logs deployment/mpi-operator
+
+# The MPI job - launcher logs
+kubectl logs -f mpi-multus-gfx942-launcher-l2smb
+
+
+
+
+#################### Create the MPI job
+
+# edit the MPI job:  rccl-test-2-nodes-8-mi325x.yaml
+
+# kubectl apply -f rccl-test-2-nodes-8-mi325x.yaml
+mpijob.kubeflow.org/mpi-multus-gfx942 created
+
+# kubectl get pods -w
+
+# kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+mpi-multus-gfx942-launcher-l2smb   1/1     Running   0          67s
+mpi-multus-gfx942-worker-0         1/1     Running   0          67s
+mpi-multus-gfx942-worker-1         1/1     Running   0          67s
+
+# Inisde the worker pod
+kubectl exec -it mpi-multus-gfx942-worker-1 -- /bin/bash
+root@mpi-multus-gfx942-worker-1:/workspace# ps -ef
+UID          PID    PPID  C STIME TTY          TIME CMD
+root           1       0  0 19:23 ?        00:00:00 sshd: /usr/sbin/sshd -D -e -f /etc/ssh-runtime/sshd_config [lis
+root          14       1  0 19:24 ?        00:00:00 sshd: root@notty
+root          16      14  0 19:24 ?        00:00:00 /opt/ompi/bin/orted -mca ess env -mca ess_base_jobid 757727232 
+root          21      16 99 19:24 ?        00:01:41 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          22      16 99 19:24 ?        00:01:41 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          23      16 99 19:24 ?        00:01:42 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          24      16 99 19:24 ?        00:01:41 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          25      16 99 19:24 ?        00:01:42 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          26      16 99 19:24 ?        00:01:42 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          27      16 99 19:24 ?        00:01:42 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root          28      16 99 19:24 ?        00:01:41 /workspace/rccl-tests/build/all_reduce_perf -b 8 -e 16G -f 2 -g
+root         210       0  0 19:24 pts/8    00:00:00 /bin/bash
+root         228     210  0 19:24 pts/8    00:00:00 ps -ef
+root@mpi-multus-gfx942-worker-1:/workspace# 
+
+
+# kubectl get pods (cleanPodPolicy: Running) 
+NAME                               READY   STATUS      RESTARTS   AGE
+mpi-multus-gfx942-launcher-l2smb   0/1     Completed   0          44m
+
+# kubectl get pods (cleanPodPolicy: None) 
+NAME                               READY   STATUS      RESTARTS   AGE
+mpi-multus-gfx942-launcher-d5xnh   0/1     Completed   2          2m3s
+mpi-multus-gfx942-worker-0         1/1     Running     0          2m3s
+mpi-multus-gfx942-worker-1         1/1     Running     0          2m3s
+
+# kubectl get mpijob
+
+# kubectl describe  mpijob mpi-multus-gfx942
+......
+......
+
+Events:
+  Type    Reason           Age                    From                Message
+  ----    ------           ----                   ----                -------
+  Normal  MPIJobCreated    3m17s (x2 over 3m17s)  mpi-job-controller  MPIJob default/mpi-multus-gfx942 is created.
+  Normal  MPIJobRunning    2m1s (x9 over 3m11s)   mpi-job-controller  MPIJob default/mpi-multus-gfx942 is running
+  Normal  MPIJobSucceeded  2m                     mpi-job-controller  MPIJob default/mpi-multus-gfx942 successfully completed.
+
+
+# kubectl describe svc mpi-multus-gfx942
+Name:                     mpi-multus-gfx942
+Namespace:                default
+Labels:                   app=mpi-multus-gfx942
+Annotations:              <none>
+Selector:                 training.kubeflow.org/job-name=mpi-multus-gfx942,training.kubeflow.org/operator-name=mpi-operator
+Type:                     ClusterIP
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       None
+IPs:                      None
+Session Affinity:         None
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+
+
+# Delete the MPI job
+# kubectl delete mpijob mpi-multus-gfx942
+
+
+#################### Install Kubeflow MPI Operator
+
+
+# kubectl apply -f https://raw.githubusercontent.com/kubeflow/mpi-operator/v0.4.0/deploy/v2beta1/mpi-operator.yaml
+namespace/mpi-operator created
+customresourcedefinition.apiextensions.k8s.io/mpijobs.kubeflow.org created
+serviceaccount/mpi-operator created
+clusterrole.rbac.authorization.k8s.io/kubeflow-mpijobs-admin created
+clusterrole.rbac.authorization.k8s.io/kubeflow-mpijobs-edit created
+clusterrole.rbac.authorization.k8s.io/kubeflow-mpijobs-view created
+clusterrole.rbac.authorization.k8s.io/mpi-operator created
+clusterrolebinding.rbac.authorization.k8s.io/mpi-operator created
+deployment.apps/mpi-operator created
+
+
+# kubectl get pods -n mpi-operator
+NAME                            READY   STATUS    RESTARTS   AGE
+mpi-operator-5d8b594fbb-xgnqc   1/1     Running   0          23s
+
+
+# kubectl get all -ALL
+NAMESPACE      NAME                                                  READY   STATUS    RESTARTS   AGE     L
+kube-system    pod/amd-gpu-device-plugin-ctlrd                       1/1     Running   0          6h53m   
+kube-system    pod/amd-gpu-device-plugin-p7ljl                       1/1     Running   0          6h53m   
+kube-system    pod/cilium-fg5g4                                      2/2     Running   0          6h54m   
+kube-system    pod/cilium-nmnq6                                      2/2     Running   0          6h54m   
+kube-system    pod/cilium-wblbh                                      2/2     Running   0          6h55m   
+kube-system    pod/cilium-x9sxw                                      2/2     Running   0          6h55m   
+kube-system    pod/coredns-b94799976-qwqt7                           1/1     Running   0          6h54m   
+kube-system    pod/coredns-b94799976-tbmwj                           1/1     Running   0          6h54m   
+kube-system    pod/cpc-bridge-proxy-czzv2                            1/1     Running   0          6h54m   
+kube-system    pod/cpc-bridge-proxy-gqtzf                            1/1     Running   0          6h54m   
+kube-system    pod/cpc-bridge-proxy-vfm5s                            1/1     Running   0          6h54m   
+kube-system    pod/cpc-bridge-proxy-wbwnz                            1/1     Running   0          6h54m   
+kube-system    pod/csi-do-node-cw2pc                                 2/2     Running   0          6h54m   
+kube-system    pod/csi-do-node-fg5pw                                 2/2     Running   0          6h54m   
+kube-system    pod/csi-do-node-pzgxs                                 2/2     Running   0          6h54m   
+kube-system    pod/csi-do-node-v8zmh                                 2/2     Running   0          6h54m   
+kube-system    pod/do-node-agent-amd-device-metrics-exporter-rtdf5   2/2     Running   0          6h53m   
+kube-system    pod/do-node-agent-amd-device-metrics-exporter-s77td   2/2     Running   0          6h53m   
+kube-system    pod/do-node-agent-p2lwz                               1/1     Running   0          6h54m   
+kube-system    pod/do-node-agent-xvfw7                               1/1     Running   0          6h54m   
+kube-system    pod/hubble-relay-66f54dcd57-nf6zc                     1/1     Running   0          6h59m   
+kube-system    pod/hubble-ui-785bdbc45b-z5d4g                        2/2     Running   0          6h55m   
+kube-system    pod/konnectivity-agent-2m9mp                          1/1     Running   0          6h54m   
+kube-system    pod/konnectivity-agent-gr4bp                          1/1     Running   0          6h54m   
+kube-system    pod/konnectivity-agent-lv5v6                          1/1     Running   0          6h54m   
+kube-system    pod/konnectivity-agent-w62x2                          1/1     Running   0          6h54m   
+kube-system    pod/kube-multus-ds-929w7                              1/1     Running   0          74m     
+kube-system    pod/kube-multus-ds-c5tpd                              1/1     Running   0          74m     
+kube-system    pod/kube-multus-ds-v7kcg                              1/1     Running   0          74m     
+kube-system    pod/kube-multus-ds-zls5w                              1/1     Running   0          74m     
+kube-system    pod/kube-proxy-5ztnj                                  1/1     Running   0          6h54m   
+kube-system    pod/kube-proxy-6j7rh                                  1/1     Running   0          6h55m   
+kube-system    pod/kube-proxy-9nnqg                                  1/1     Running   0          6h54m   
+kube-system    pod/kube-proxy-v4jpl                                  1/1     Running   0          6h55m   
+kube-system    pod/rdma-shared-dp-ds-5tqmv                           1/1     Running   0          6h53m   
+kube-system    pod/rdma-shared-dp-ds-zk5dm                           1/1     Running   0          6h53m   
+mpi-operator   pod/mpi-operator-5d8b594fbb-xgnqc                     1/1     Running   0          94s     
+
+NAMESPACE     NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE     L
+default       service/kubernetes       ClusterIP   10.245.0.1      <none>        443/TCP                  7h      
+kube-system   service/cilium-agent     ClusterIP   None            <none>        9964/TCP                 6h59m   
+kube-system   service/hubble-metrics   ClusterIP   None            <none>        9965/TCP                 6h59m   
+kube-system   service/hubble-peer      ClusterIP   10.245.212.58   <none>        443/TCP                  6h59m   
+kube-system   service/hubble-relay     ClusterIP   10.245.10.29    <none>        80/TCP                   6h59m   
+kube-system   service/hubble-ui        ClusterIP   10.245.34.57    <none>        80/TCP                   6h59m   
+kube-system   service/kube-dns         ClusterIP   10.245.0.10     <none>        53/UDP,53/TCP,9153/TCP   6h54m   
+
+NAMESPACE     NAME                                                       DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                                                                                                  AGE     L
+kube-system   daemonset.apps/amd-gpu-device-plugin                       2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd                                                                            6h53m   
+kube-system   daemonset.apps/cilium                                      4         4         4       4            4           kubernetes.io/os=linux                                                                                         6h59m   
+kube-system   daemonset.apps/cpc-bridge-proxy                            4         4         4       4            4           <none>                                                                                                         6h54m   
+kube-system   daemonset.apps/csi-do-node                                 4         4         4       4            4           <none>                                                                                                         6h54m   
+kube-system   daemonset.apps/do-node-agent                               2         2         2       2            2           kubernetes.io/os=linux                                                                                         6h54m   
+kube-system   daemonset.apps/do-node-agent-amd-device-metrics-exporter   2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd,kubernetes.io/os=linux                                                     6h53m   
+kube-system   daemonset.apps/do-node-agent-nvidia-dcgm-exporter          0         0         0       0            0           doks.digitalocean.com/gpu-brand=nvidia,doks.digitalocean.com/nvidia-dcgm-enabled=true,kubernetes.io/os=linux   6h53m   
+kube-system   daemonset.apps/konnectivity-agent                          4         4         4       4            4           <none>                                                                                                         6h54m   
+kube-system   daemonset.apps/kube-multus-ds                              4         4         4       4            4           <none>                                                                                                         74m     
+kube-system   daemonset.apps/kube-proxy                                  4         4         4       4            4           <none>                                                                                                         6h59m   
+kube-system   daemonset.apps/rdma-shared-dp-ds                           2         2         2       2            2           doks.digitalocean.com/is-gpu-fabric-connected=true                                                             6h53m   
+
+NAMESPACE      NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     L
+kube-system    deployment.apps/coredns        2/2     2            2           6h54m   
+kube-system    deployment.apps/hubble-relay   1/1     1            1           6h59m   
+kube-system    deployment.apps/hubble-ui      1/1     1            1           6h55m   
+mpi-operator   deployment.apps/mpi-operator   1/1     1            1           94s     
+
+NAMESPACE      NAME                                      DESIRED   CURRENT   READY   AGE     L
+kube-system    replicaset.apps/coredns-b94799976         2         2         2       6h54m   
+kube-system    replicaset.apps/hubble-relay-66f54dcd57   1         1         1       6h59m   
+kube-system    replicaset.apps/hubble-ui-785bdbc45b      1         1         1       6h55m   
+mpi-operator   replicaset.apps/mpi-operator-5d8b594fbb   1         1         1       94s  
+
+
+#################### No 6: Prepare the image - build & push
+
+
+rocminfo | grep gfx
+
+
+docker image build -t docker.io/richardxgf/amd:rccl-test-325 -f Dockerfile . 
+
+root@rs-amd-validation-test1:~/data/collective-communication/rccl-test# docker image ls                                                                                                                                                        i Info →   U  In Use
+IMAGE                                                                              ID             DISK USAGE   CONTENT SIZE   EXTRA
+richardxgf/amd:rccl-test-325                                                       badb553f0825       6.87GB         1.69GB  
+
+docker push docker.io/richardxgf/amd:rccl-test-325 
+
+
+#################### No 5: Install Network attachment
+
+
+# kubectl apply -f network-attachments.yaml
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric0 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric1 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric2 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric3 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric4 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric5 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric6 created
+networkattachmentdefinition.k8s.cni.cncf.io/roce-net-fabric7 created
+
+
+# kubectl get network-attachment-definitions.k8s.cni.cncf.io -A
+NAMESPACE   NAME               AGE
+default     roce-net-fabric0   2m13s
+default     roce-net-fabric1   2m13s
+default     roce-net-fabric2   2m13s
+default     roce-net-fabric3   2m13s
+default     roce-net-fabric4   2m13s
+default     roce-net-fabric5   2m13s
+default     roce-net-fabric6   2m13s
+default     roce-net-fabric7   2m13s
+
+
+# kubectl get network-attachment-definitions
+NAME               AGE
+roce-net-fabric0   6m46s
+roce-net-fabric1   6m46s
+roce-net-fabric2   6m46s
+roce-net-fabric3   6m46s
+roce-net-fabric4   6m46s
+roce-net-fabric5   6m46s
+roce-net-fabric6   6m46s
+roce-net-fabric7   6m46s
+
+
+#################### No 4: Install Multus CNI
+#Multus CNI enables pods to attach to multiple network interfaces, providing direct access to high-speed RoCE fabric devices.
+
+# kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml
+customresourcedefinition.apiextensions.k8s.io/network-attachment-definitions.k8s.cni.cncf.io created
+clusterrole.rbac.authorization.k8s.io/multus created
+clusterrolebinding.rbac.authorization.k8s.io/multus created
+serviceaccount/multus created
+configmap/multus-daemon-config created
+daemonset.apps/kube-multus-ds created
+
+
+# kubectl get pods -n kube-system | grep multus
+kube-multus-ds-929w7                              1/1     Running   0          4m2s
+kube-multus-ds-c5tpd                              1/1     Running   0          4m2s
+kube-multus-ds-v7kcg                              1/1     Running   0          4m2s
+kube-multus-ds-zls5w                              1/1     Running   0          4m2s
+
+
+# kubectl -n kube-system describe daemonset kube-multus-ds
+Name:           kube-multus-ds
+Namespace:      kube-system
+Selector:       name=multus
+Node-Selector:  <none>
+Labels:         app=multus
+                name=multus
+                tier=node
+Annotations:    deprecated.daemonset.template.generation: 1
+Desired Number of Nodes Scheduled: 4
+Current Number of Nodes Scheduled: 4
+Number of Nodes Scheduled with Up-to-date Pods: 4
+Number of Nodes Scheduled with Available Pods: 4
+Number of Nodes Misscheduled: 0
+Pods Status:  4 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:           app=multus
+                    name=multus
+                    tier=node
+  Service Account:  multus
+  Init Containers:
+   install-multus-binary:
+    Image:      ghcr.io/k8snetworkplumbingwg/multus-cni:snapshot-thick
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      /usr/src/multus-cni/bin/install_multus
+      -d
+      /host/opt/cni/bin
+      -t
+      thick
+    Requests:
+      cpu:        10m
+      memory:     15Mi
+    Environment:  <none>
+    Mounts:
+      /host/opt/cni/bin from cnibin (rw)
+  Containers:
+   kube-multus:
+    Image:      ghcr.io/k8snetworkplumbingwg/multus-cni:snapshot-thick
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      /usr/src/multus-cni/bin/multus-daemon
+    Limits:
+      cpu:     100m
+      memory:  50Mi
+    Requests:
+      cpu:     100m
+      memory:  50Mi
+    Environment:
+      MULTUS_NODE_NAME:   (v1:spec.nodeName)
+    Mounts:
+      /etc/cni/multus/net.d from multus-conf-dir (rw)
+      /etc/cni/net.d/multus.d from multus-daemon-config (ro)
+      /host/etc/cni/net.d from cni (rw)
+      /host/run from host-run (rw)
+      /hostroot from hostroot (rw)
+      /opt/cni/bin from cnibin (rw)
+      /run/k8s.cni.cncf.io from host-run-k8s-cni-cncf-io (rw)
+      /run/netns from host-run-netns (rw)
+      /var/lib/cni/multus from host-var-lib-cni-multus (rw)
+      /var/lib/kubelet from host-var-lib-kubelet (rw)
+  Volumes:
+   cni:
+    Type:          HostPath (bare host directory volume)
+    Path:          /etc/cni/net.d
+    HostPathType:  
+   cnibin:
+    Type:          HostPath (bare host directory volume)
+    Path:          /opt/cni/bin
+    HostPathType:  
+   hostroot:
+    Type:          HostPath (bare host directory volume)
+    Path:          /
+    HostPathType:  
+   multus-daemon-config:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      multus-daemon-config
+    Optional:  false
+   host-run:
+    Type:          HostPath (bare host directory volume)
+    Path:          /run
+    HostPathType:  
+   host-var-lib-cni-multus:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/cni/multus
+    HostPathType:  
+   host-var-lib-kubelet:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/kubelet
+    HostPathType:  
+   host-run-k8s-cni-cncf-io:
+    Type:          HostPath (bare host directory volume)
+    Path:          /run/k8s.cni.cncf.io
+    HostPathType:  
+   host-run-netns:
+    Type:          HostPath (bare host directory volume)
+    Path:          /run/netns/
+    HostPathType:  
+   multus-conf-dir:
+    Type:          HostPath (bare host directory volume)
+    Path:          /etc/cni/multus/net.d
+    HostPathType:  
+  Node-Selectors:  <none>
+  Tolerations:     :NoSchedule op=Exists
+                   :NoExecute op=Exists
+Events:
+  Type    Reason            Age    From                  Message
+  ----    ------            ----   ----                  -------
+  Normal  SuccessfulCreate  6m38s  daemonset-controller  Created pod: kube-multus-ds-v7kcg
+  Normal  SuccessfulCreate  6m38s  daemonset-controller  Created pod: kube-multus-ds-zls5w
+  Normal  SuccessfulCreate  6m38s  daemonset-controller  Created pod: kube-multus-ds-929w7
+  Normal  SuccessfulCreate  6m38s  daemonset-controller  Created pod: kube-multus-ds-c5tpd
+
+
+# kubectl get all -ALL
+NAMESPACE     NAME                                                  READY   STATUS    RESTARTS   AGE     L
+kube-system   pod/amd-gpu-device-plugin-ctlrd                       1/1     Running   0          5h40m   
+kube-system   pod/amd-gpu-device-plugin-p7ljl                       1/1     Running   0          5h40m   
+kube-system   pod/cilium-fg5g4                                      2/2     Running   0          5h41m   
+kube-system   pod/cilium-nmnq6                                      2/2     Running   0          5h41m   
+kube-system   pod/cilium-wblbh                                      2/2     Running   0          5h42m   
+kube-system   pod/cilium-x9sxw                                      2/2     Running   0          5h42m   
+kube-system   pod/coredns-b94799976-qwqt7                           1/1     Running   0          5h40m   
+kube-system   pod/coredns-b94799976-tbmwj                           1/1     Running   0          5h40m   
+kube-system   pod/cpc-bridge-proxy-czzv2                            1/1     Running   0          5h41m   
+kube-system   pod/cpc-bridge-proxy-gqtzf                            1/1     Running   0          5h41m   
+kube-system   pod/cpc-bridge-proxy-vfm5s                            1/1     Running   0          5h41m   
+kube-system   pod/cpc-bridge-proxy-wbwnz                            1/1     Running   0          5h41m   
+kube-system   pod/csi-do-node-cw2pc                                 2/2     Running   0          5h40m   
+kube-system   pod/csi-do-node-fg5pw                                 2/2     Running   0          5h40m   
+kube-system   pod/csi-do-node-pzgxs                                 2/2     Running   0          5h40m   
+kube-system   pod/csi-do-node-v8zmh                                 2/2     Running   0          5h40m   
+kube-system   pod/do-node-agent-amd-device-metrics-exporter-rtdf5   2/2     Running   0          5h40m   
+kube-system   pod/do-node-agent-amd-device-metrics-exporter-s77td   2/2     Running   0          5h40m   
+kube-system   pod/do-node-agent-p2lwz                               1/1     Running   0          5h40m   
+kube-system   pod/do-node-agent-xvfw7                               1/1     Running   0          5h40m   
+kube-system   pod/hubble-relay-66f54dcd57-nf6zc                     1/1     Running   0          5h46m   
+kube-system   pod/hubble-ui-785bdbc45b-z5d4g                        2/2     Running   0          5h41m   
+kube-system   pod/konnectivity-agent-2m9mp                          1/1     Running   0          5h41m   
+kube-system   pod/konnectivity-agent-gr4bp                          1/1     Running   0          5h41m   
+kube-system   pod/konnectivity-agent-lv5v6                          1/1     Running   0          5h41m   
+kube-system   pod/konnectivity-agent-w62x2                          1/1     Running   0          5h41m   
+kube-system   pod/kube-multus-ds-929w7                              1/1     Running   0          66s      # New
+kube-system   pod/kube-multus-ds-c5tpd                              1/1     Running   0          66s      # New
+kube-system   pod/kube-multus-ds-v7kcg                              1/1     Running   0          66s      # New
+kube-system   pod/kube-multus-ds-zls5w                              1/1     Running   0          66s      # New
+kube-system   pod/kube-proxy-5ztnj                                  1/1     Running   0          5h41m   
+kube-system   pod/kube-proxy-6j7rh                                  1/1     Running   0          5h42m   
+kube-system   pod/kube-proxy-9nnqg                                  1/1     Running   0          5h41m   
+kube-system   pod/kube-proxy-v4jpl                                  1/1     Running   0          5h42m   
+kube-system   pod/rdma-shared-dp-ds-5tqmv                           1/1     Running   0          5h40m   
+kube-system   pod/rdma-shared-dp-ds-zk5dm                           1/1     Running   0          5h40m   
+
+NAMESPACE     NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE     L
+default       service/kubernetes       ClusterIP   10.245.0.1      <none>        443/TCP                  5h46m   
+kube-system   service/cilium-agent     ClusterIP   None            <none>        9964/TCP                 5h46m   
+kube-system   service/hubble-metrics   ClusterIP   None            <none>        9965/TCP                 5h46m   
+kube-system   service/hubble-peer      ClusterIP   10.245.212.58   <none>        443/TCP                  5h46m   
+kube-system   service/hubble-relay     ClusterIP   10.245.10.29    <none>        80/TCP                   5h46m   
+kube-system   service/hubble-ui        ClusterIP   10.245.34.57    <none>        80/TCP                   5h46m   
+kube-system   service/kube-dns         ClusterIP   10.245.0.10     <none>        53/UDP,53/TCP,9153/TCP   5h40m   
+
+NAMESPACE     NAME                                                       DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                                                                                                  AGE     L
+kube-system   daemonset.apps/amd-gpu-device-plugin                       2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd                                                                            5h40m   
+kube-system   daemonset.apps/cilium                                      4         4         4       4            4           kubernetes.io/os=linux                                                                                         5h46m   
+kube-system   daemonset.apps/cpc-bridge-proxy                            4         4         4       4            4           <none>                                                                                                         5h41m   
+kube-system   daemonset.apps/csi-do-node                                 4         4         4       4            4           <none>                                                                                                         5h40m   
+kube-system   daemonset.apps/do-node-agent                               2         2         2       2            2           kubernetes.io/os=linux                                                                                         5h40m   
+kube-system   daemonset.apps/do-node-agent-amd-device-metrics-exporter   2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd,kubernetes.io/os=linux                                                     5h40m   
+kube-system   daemonset.apps/do-node-agent-nvidia-dcgm-exporter          0         0         0       0            0           doks.digitalocean.com/gpu-brand=nvidia,doks.digitalocean.com/nvidia-dcgm-enabled=true,kubernetes.io/os=linux   5h40m   
+kube-system   daemonset.apps/konnectivity-agent                          4         4         4       4            4           <none>                                                                                                         5h41m   
+kube-system   daemonset.apps/kube-multus-ds                              4         4         4       4            4           <none>      # New                                                                                                   66s     
+kube-system   daemonset.apps/kube-proxy                                  4         4         4       4            4           <none>                                                                                                         5h46m   
+kube-system   daemonset.apps/rdma-shared-dp-ds                           2         2         2       2            2           doks.digitalocean.com/is-gpu-fabric-connected=true                                                             5h40m   
+
+NAMESPACE     NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     L
+kube-system   deployment.apps/coredns        2/2     2            2           5h40m   
+kube-system   deployment.apps/hubble-relay   1/1     1            1           5h46m   
+kube-system   deployment.apps/hubble-ui      1/1     1            1           5h41m   
+
+NAMESPACE     NAME                                      DESIRED   CURRENT   READY   AGE     L
+kube-system   replicaset.apps/coredns-b94799976         2         2         2       5h40m   
+kube-system   replicaset.apps/hubble-relay-66f54dcd57   1         1         1       5h46m   
+kube-system   replicaset.apps/hubble-ui-785bdbc45b      1         1         1       5h41m  
+
+
+#################### No 3: Check the DOKS
+
+
+kubectl -n kube-system describe daemonset amd-gpu-device-plugin
+kubectl -n kube-system describe daemonset rdma-shared-dp-ds
+kubectl get all -ALL
+kubectl describe node rs-rccl-gpu-pool-sj8h6
+kubectl get node -l doks.digitalocean.com/gpu-model=mi325x
+
+
+# kubectl -n kube-system describe daemonset amd-gpu-device-plugin
+Name:           amd-gpu-device-plugin
+Namespace:      kube-system
+Selector:       name=amd-gpu-device-plugin
+Node-Selector:  doks.digitalocean.com/gpu-brand=amd
+Labels:         c3.doks.digitalocean.com/component=amd-gpu-device-plugin
+                c3.doks.digitalocean.com/plane=data
+                doks.digitalocean.com/managed=true
+Annotations:    deprecated.daemonset.template.generation: 1
+Desired Number of Nodes Scheduled: 2
+Current Number of Nodes Scheduled: 2
+Number of Nodes Scheduled with Up-to-date Pods: 2
+Number of Nodes Scheduled with Available Pods: 2
+Number of Nodes Misscheduled: 0
+Pods Status:  2 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  name=amd-gpu-device-plugin
+  Containers:
+   amdgpu-dp-cntr:
+    Image:        ghcr.io/digitalocean-packages/amd-gpu-device-plugin:1.31.0.7
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:
+      /sys from sys (rw)
+      /var/lib/kubelet/device-plugins from dp (rw)
+  Volumes:
+   dp:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/kubelet/device-plugins
+    HostPathType:  
+   sys:
+    Type:               HostPath (bare host directory volume)
+    Path:               /sys
+    HostPathType:       
+  Priority Class Name:  system-node-critical
+  Node-Selectors:       doks.digitalocean.com/gpu-brand=amd
+  Tolerations:          op=Exists
+Events:                 <none>
+
+
+# kubectl -n kube-system describe daemonset rdma-shared-dp-ds
+Name:           rdma-shared-dp-ds
+Namespace:      kube-system
+Selector:       name=rdma-shared-dp-ds
+Node-Selector:  doks.digitalocean.com/is-gpu-fabric-connected=true
+Labels:         c3.doks.digitalocean.com/component=rdma-shared-dev-plugin
+                c3.doks.digitalocean.com/plane=data
+                doks.digitalocean.com/managed=true
+Annotations:    deprecated.daemonset.template.generation: 1
+Desired Number of Nodes Scheduled: 2
+Current Number of Nodes Scheduled: 2
+Number of Nodes Scheduled with Up-to-date Pods: 2
+Number of Nodes Scheduled with Available Pods: 2
+Number of Nodes Misscheduled: 0
+Pods Status:  2 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:  name=rdma-shared-dp-ds
+  Containers:
+   k8s-rdma-shared-dp-ds:
+    Image:        ghcr.io/digitalocean-packages/k8s-rdma-shared-dev-plugin:v1.5.3
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:
+      /dev/ from devs (rw)
+      /k8s-rdma-shared-dev-plugin from config (rw)
+      /var/lib/kubelet/device-plugins from device-plugin (rw)
+      /var/lib/kubelet/plugins_registry from plugins-registry (rw)
+  Volumes:
+   device-plugin:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/kubelet/device-plugins
+    HostPathType:  
+   plugins-registry:
+    Type:          HostPath (bare host directory volume)
+    Path:          /var/lib/kubelet/plugins_registry
+    HostPathType:  
+   config:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      rdma-devices
+    Optional:  false
+   devs:
+    Type:               HostPath (bare host directory volume)
+    Path:               /dev/
+    HostPathType:       
+  Priority Class Name:  system-node-critical
+  Node-Selectors:       doks.digitalocean.com/is-gpu-fabric-connected=true
+  Tolerations:          op=Exists
+Events:                 <none>
+
+
+# kubectl get all -ALL
+NAMESPACE     NAME                                                  READY   STATUS    RESTARTS   AGE     L
+kube-system   pod/amd-gpu-device-plugin-ctlrd                       1/1     Running   0          5h34m   
+kube-system   pod/amd-gpu-device-plugin-p7ljl                       1/1     Running   0          5h34m   
+kube-system   pod/cilium-fg5g4                                      2/2     Running   0          5h35m   
+kube-system   pod/cilium-nmnq6                                      2/2     Running   0          5h35m   
+kube-system   pod/cilium-wblbh                                      2/2     Running   0          5h36m   
+kube-system   pod/cilium-x9sxw                                      2/2     Running   0          5h36m   
+kube-system   pod/coredns-b94799976-qwqt7                           1/1     Running   0          5h34m   
+kube-system   pod/coredns-b94799976-tbmwj                           1/1     Running   0          5h34m   
+kube-system   pod/cpc-bridge-proxy-czzv2                            1/1     Running   0          5h35m   
+kube-system   pod/cpc-bridge-proxy-gqtzf                            1/1     Running   0          5h35m   
+kube-system   pod/cpc-bridge-proxy-vfm5s                            1/1     Running   0          5h35m   
+kube-system   pod/cpc-bridge-proxy-wbwnz                            1/1     Running   0          5h35m   
+kube-system   pod/csi-do-node-cw2pc                                 2/2     Running   0          5h34m   
+kube-system   pod/csi-do-node-fg5pw                                 2/2     Running   0          5h34m   
+kube-system   pod/csi-do-node-pzgxs                                 2/2     Running   0          5h34m   
+kube-system   pod/csi-do-node-v8zmh                                 2/2     Running   0          5h34m   
+kube-system   pod/do-node-agent-amd-device-metrics-exporter-rtdf5   2/2     Running   0          5h34m   
+kube-system   pod/do-node-agent-amd-device-metrics-exporter-s77td   2/2     Running   0          5h34m   
+kube-system   pod/do-node-agent-p2lwz                               1/1     Running   0          5h34m   
+kube-system   pod/do-node-agent-xvfw7                               1/1     Running   0          5h34m   
+kube-system   pod/hubble-relay-66f54dcd57-nf6zc                     1/1     Running   0          5h40m   
+kube-system   pod/hubble-ui-785bdbc45b-z5d4g                        2/2     Running   0          5h35m   
+kube-system   pod/konnectivity-agent-2m9mp                          1/1     Running   0          5h35m   
+kube-system   pod/konnectivity-agent-gr4bp                          1/1     Running   0          5h35m   
+kube-system   pod/konnectivity-agent-lv5v6                          1/1     Running   0          5h35m   
+kube-system   pod/konnectivity-agent-w62x2                          1/1     Running   0          5h35m   
+kube-system   pod/kube-proxy-5ztnj                                  1/1     Running   0          5h35m   
+kube-system   pod/kube-proxy-6j7rh                                  1/1     Running   0          5h36m   
+kube-system   pod/kube-proxy-9nnqg                                  1/1     Running   0          5h35m   
+kube-system   pod/kube-proxy-v4jpl                                  1/1     Running   0          5h36m   
+kube-system   pod/rdma-shared-dp-ds-5tqmv                           1/1     Running   0          5h34m   
+kube-system   pod/rdma-shared-dp-ds-zk5dm                           1/1     Running   0          5h34m   
+
+NAMESPACE     NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE     L
+default       service/kubernetes       ClusterIP   10.245.0.1      <none>        443/TCP                  5h40m   
+kube-system   service/cilium-agent     ClusterIP   None            <none>        9964/TCP                 5h40m   
+kube-system   service/hubble-metrics   ClusterIP   None            <none>        9965/TCP                 5h40m   
+kube-system   service/hubble-peer      ClusterIP   10.245.212.58   <none>        443/TCP                  5h40m   
+kube-system   service/hubble-relay     ClusterIP   10.245.10.29    <none>        80/TCP                   5h40m   
+kube-system   service/hubble-ui        ClusterIP   10.245.34.57    <none>        80/TCP                   5h40m   
+kube-system   service/kube-dns         ClusterIP   10.245.0.10     <none>        53/UDP,53/TCP,9153/TCP   5h34m   
+
+NAMESPACE     NAME                                                       DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                                                                                                  AGE     L
+kube-system   daemonset.apps/amd-gpu-device-plugin                       2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd                                                                            5h34m   
+kube-system   daemonset.apps/cilium                                      4         4         4       4            4           kubernetes.io/os=linux                                                                                         5h40m   
+kube-system   daemonset.apps/cpc-bridge-proxy                            4         4         4       4            4           <none>                                                                                                         5h35m   
+kube-system   daemonset.apps/csi-do-node                                 4         4         4       4            4           <none>                                                                                                         5h34m   
+kube-system   daemonset.apps/do-node-agent                               2         2         2       2            2           kubernetes.io/os=linux                                                                                         5h34m   
+kube-system   daemonset.apps/do-node-agent-amd-device-metrics-exporter   2         2         2       2            2           doks.digitalocean.com/gpu-brand=amd,kubernetes.io/os=linux                                                     5h34m   
+kube-system   daemonset.apps/do-node-agent-nvidia-dcgm-exporter          0         0         0       0            0           doks.digitalocean.com/gpu-brand=nvidia,doks.digitalocean.com/nvidia-dcgm-enabled=true,kubernetes.io/os=linux   5h34m   
+kube-system   daemonset.apps/konnectivity-agent                          4         4         4       4            4           <none>                                                                                                         5h35m   
+kube-system   daemonset.apps/kube-proxy                                  4         4         4       4            4           <none>                                                                                                         5h40m   
+kube-system   daemonset.apps/rdma-shared-dp-ds                           2         2         2       2            2           doks.digitalocean.com/is-gpu-fabric-connected=true                                                             5h34m   
+
+NAMESPACE     NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     L
+kube-system   deployment.apps/coredns        2/2     2            2           5h34m   
+kube-system   deployment.apps/hubble-relay   1/1     1            1           5h40m   
+kube-system   deployment.apps/hubble-ui      1/1     1            1           5h35m   
+
+NAMESPACE     NAME                                      DESIRED   CURRENT   READY   AGE     L
+kube-system   replicaset.apps/coredns-b94799976         2         2         2       5h34m   
+kube-system   replicaset.apps/hubble-relay-66f54dcd57   1         1         1       5h40m   
+kube-system   replicaset.apps/hubble-ui-785bdbc45b      1         1         1       5h35m   
+
+
+# kubectl get node -l doks.digitalocean.com/gpu-model=mi325x
+NAME                     STATUS   ROLES    AGE     VERSION
+rs-rccl-gpu-pool-sj8h6   Ready    <none>   7h55m   v1.33.6
+rs-rccl-gpu-pool-sj8hl   Ready    <none>   7h55m   v1.33.6
+
+
+# kubectl describe node rs-rccl-gpu-pool-sj8h6
+Name:               rs-rccl-gpu-pool-sj8h6
+Roles:              <none>
+Labels:             amd.com/gpu=8
+                    beta.kubernetes.io/arch=amd64
+                    beta.kubernetes.io/instance-type=gpu-mi325x8-2048gb-fabric-contracted
+                    beta.kubernetes.io/os=linux
+                    doks.digitalocean.com/gpu-brand=amd
+                    doks.digitalocean.com/gpu-model=mi325x                # label
+                    doks.digitalocean.com/is-gpu-fabric-connected=true
+                    doks.digitalocean.com/managed=true
+                    doks.digitalocean.com/node-id=34fcb796-867d-46db-8338-67d798907db0
+                    doks.digitalocean.com/node-pool=rs-rccl-gpu-pool
+                    doks.digitalocean.com/node-pool-id=23569ee2-bc86-4699-9b24-ac8517ae8038
+                    doks.digitalocean.com/version=1.33.6-do.0
+                    failure-domain.beta.kubernetes.io/region=atl1
+                    kubernetes.io/arch=amd64
+                    kubernetes.io/hostname=rs-rccl-gpu-pool-sj8h6
+                    kubernetes.io/os=linux
+                    node.kubernetes.io/instance-type=gpu-mi325x8-2048gb-fabric-contracted
+                    region=atl1
+                    topology.kubernetes.io/region=atl1
+Annotations:        alpha.kubernetes.io/provided-node-ip: 10.128.0.45
+                    csi.volume.kubernetes.io/nodeid: {"dobs.csi.digitalocean.com":"532902916"}
+                    network.cilium.io/ipv4-Ingress-ip: 10.244.1.12
+                    network.cilium.io/ipv4-cilium-host: 10.244.1.37
+                    network.cilium.io/ipv4-health-ip: 10.244.1.91
+                    network.cilium.io/ipv4-pod-cidr: 10.244.1.0/25
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Thu, 27 Nov 2025 16:49:40 +0000
+Taints:             amd.com/gpu:NoSchedule
+Unschedulable:      false
+Lease:
+  HolderIdentity:  rs-rccl-gpu-pool-sj8h6
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 28 Nov 2025 00:43:56 +0000
+Conditions:
+  Type                 Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----                 ------  -----------------                 ------------------                ------                       -------
+  NetworkUnavailable   False   Thu, 27 Nov 2025 16:50:08 +0000   Thu, 27 Nov 2025 16:50:08 +0000   CiliumIsUp                   Cilium is running on this node
+  MemoryPressure       False   Fri, 28 Nov 2025 00:39:22 +0000   Thu, 27 Nov 2025 16:49:40 +0000   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure         False   Fri, 28 Nov 2025 00:39:22 +0000   Thu, 27 Nov 2025 16:49:40 +0000   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure          False   Fri, 28 Nov 2025 00:39:22 +0000   Thu, 27 Nov 2025 16:49:40 +0000   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready                True    Fri, 28 Nov 2025 00:39:22 +0000   Thu, 27 Nov 2025 16:49:56 +0000   KubeletReady                 kubelet is posting ready status
+Addresses:
+  InternalIP:  10.128.0.45
+  Hostname:    rs-rccl-gpu-pool-sj8h6
+  ExternalIP:  134.199.200.91
+Capacity:
+  amd.com/gpu:        8
+  cpu:                160
+  ephemeral-storage:  2111508792Ki
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             1321045240Ki
+  pods:               110
+  rdma/fabric0:       100
+  rdma/fabric1:       100
+  rdma/fabric2:       100
+  rdma/fabric3:       100
+  rdma/fabric4:       100
+  rdma/fabric5:       100
+  rdma/fabric6:       100
+  rdma/fabric7:       100
+Allocatable:
+  amd.com/gpu:        8
+  cpu:                159500m
+  ephemeral-storage:  1945966499486
+  hugepages-1Gi:      0
+  hugepages-2Mi:      0
+  memory:             1287432440Ki
+  pods:               110
+  rdma/fabric0:       100
+  rdma/fabric1:       100
+  rdma/fabric2:       100
+  rdma/fabric3:       100
+  rdma/fabric4:       100
+  rdma/fabric5:       100
+  rdma/fabric6:       100
+  rdma/fabric7:       100
+System Info:
+  Machine ID:                 1dec2b6e565a49feba71b4df804fb58d
+  System UUID:                1dec2b6e-565a-49fe-ba71-b4df804fb58d
+  Boot ID:                    df5c5771-257a-4fe3-aa60-45837b8202ca
+  Kernel Version:             6.1.0-39-amd64
+  OS Image:                   Debian GNU/Linux 12 (bookworm)
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  containerd://1.6.33
+  Kubelet Version:            v1.33.6
+  Kube-Proxy Version:         
+ProviderID:                   digitalocean://532902916
+Non-terminated Pods:          (9 in total)
+  Namespace                   Name                                               CPU Requests  CPU Limits  Memory Requests  Memory Limits  Age
+  ---------                   ----                                               ------------  ----------  ---------------  -------------  ---
+  kube-system                 amd-gpu-device-plugin-p7ljl                        0 (0%)        0 (0%)      0 (0%)           0 (0%)         7h53m
+  kube-system                 cilium-nmnq6                                       320m (0%)     0 (0%)      350Mi (0%)       50Mi (0%)      7h54m
+  kube-system                 cpc-bridge-proxy-czzv2                             100m (0%)     0 (0%)      75Mi (0%)        0 (0%)         7h54m
+  kube-system                 csi-do-node-pzgxs                                  0 (0%)        0 (0%)      0 (0%)           0 (0%)         7h53m
+  kube-system                 do-node-agent-amd-device-metrics-exporter-s77td    302m (0%)     1 (0%)      280Mi (0%)       1324Mi (0%)    7h53m
+  kube-system                 konnectivity-agent-gr4bp                           0 (0%)        0 (0%)      0 (0%)           0 (0%)         7h54m
+  kube-system                 kube-multus-ds-zls5w                               100m (0%)     100m (0%)   50Mi (0%)        50Mi (0%)      134m
+  kube-system                 kube-proxy-9nnqg                                   0 (0%)        0 (0%)      125Mi (0%)       0 (0%)         7h54m
+  kube-system                 rdma-shared-dp-ds-zk5dm                            0 (0%)        0 (0%)      0 (0%)           0 (0%)         7h53m
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests    Limits
+  --------           --------    ------
+  cpu                822m (0%)   1100m (0%)
+  memory             880Mi (0%)  1424Mi (0%)
+  ephemeral-storage  5Gi (0%)    10Gi (0%)
+  hugepages-1Gi      0 (0%)      0 (0%)
+  hugepages-2Mi      0 (0%)      0 (0%)
+  amd.com/gpu        0           0
+  rdma/fabric0       0           0
+  rdma/fabric1       0           0
+  rdma/fabric2       0           0
+  rdma/fabric3       0           0
+  rdma/fabric4       0           0
+  rdma/fabric5       0           0
+  rdma/fabric6       0           0
+  rdma/fabric7       0           0
+Events:              <none>
+
+
+####################  No 2: Check the Host
+
+
+ibv_devinfo -v | grep GID
+ls /sys/class/infiniband/
+cat /etc/os-release (debian 12)
+
+# RoCE v2 is active
+# ibv_devinfo -v | grep GID
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:ad00, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:ad00, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8e90, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8e90, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8eb0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8eb0, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe37:5b0e, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe37:5b0e, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe37:5ab6, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe37:5ab6, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:8ea0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:8ea0, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:ad70, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:ad70, RoCE v2
+                        GID[  0]:               fe80:0000:0000:0000:3825:f3ff:fe35:aee0, RoCE v1
+                        GID[  1]:               fe80::3825:f3ff:fe35:aee0, RoCE v2
+
+# The kernal driver is loaded and the RDMS devices exist
+# ls /sys/class/infiniband/
+mlx5_0  mlx5_1  mlx5_2  mlx5_3  mlx5_4  mlx5_5  mlx5_6  mlx5_7
+
+# The RDMA CM - Connection Manager device is up
+# rdma link
+link mlx5_0/1 state ACTIVE physical_state LINK_UP netdev fabric0 
+link mlx5_1/1 state ACTIVE physical_state LINK_UP netdev fabric1 
+link mlx5_2/1 state ACTIVE physical_state LINK_UP netdev fabric2 
+link mlx5_3/1 state ACTIVE physical_state LINK_UP netdev fabric3 
+link mlx5_4/1 state ACTIVE physical_state LINK_UP netdev fabric4 
+link mlx5_5/1 state ACTIVE physical_state LINK_UP netdev fabric5 
+link mlx5_6/1 state ACTIVE physical_state LINK_UP netdev fabric6 
+link mlx5_7/1 state ACTIVE physical_state LINK_UP netdev fabric7 
+
+# rocminfo | grep gfx
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+  Name:                    gfx942                             
+      Name:                    amdgcn-amd-amdhsa--gfx942:sramecc+:xnack-
+      Name:                    amdgcn-amd-amdhsa--gfx9-4-generic:sramecc+:xnack-
+
+# amd-smi version
+AMDSMI Tool: 25.5.1+41065ee6 | AMDSMI Library version: 25.5.1 | ROCm version: 6.4.2 | amdgpu version: 6.12.12 | amd_hsmp version: N/A
+
+# rocm-smi
+=========================================== ROCm System Management Interface ===========================================
+===================================================== Concise Info =====================================================
+Device  Node  IDs              Temp        Power     Partitions          SCLK  MCLK    Fan  Perf  PwrCap   VRAM%  GPU%  
+              (DID,     GUID)  (Junction)  (Socket)  (Mem, Compute, ID)                                                 
+========================================================================================================================
+0       2     0x74b9,   43855  48.0°C      149.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+1       3     0x74b9,   27976  48.0°C      141.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+2       4     0x74b9,   26434  46.0°C      148.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+3       5     0x74b9,   41285  50.0°C      145.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+4       6     0x74b9,   29526  45.0°C      132.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+5       7     0x74b9,   46417  51.0°C      143.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+6       8     0x74b9,   48987  45.0°C      146.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+7       9     0x74b9,   31068  49.0°C      142.0W    NPS1, SPX, 0        N/A   900Mhz  0%   auto  1000.0W  0%     0%    
+========================================================================================================================
+================================================= End of ROCm SMI Log ==================================================
+
+# rocm-smi --showtopo
+============================ ROCm System Management Interface ============================
+================================ Weight between two GPUs =================================
+       GPU0         GPU1         GPU2         GPU3         GPU4         GPU5         GPU6         GPU7         
+GPU0   0            15           15           15           15           15           15           15           
+GPU1   15           0            15           15           15           15           15           15           
+GPU2   15           15           0            15           15           15           15           15           
+GPU3   15           15           15           0            15           15           15           15           
+GPU4   15           15           15           15           0            15           15           15           
+GPU5   15           15           15           15           15           0            15           15           
+GPU6   15           15           15           15           15           15           0            15           
+GPU7   15           15           15           15           15           15           15           0            
+
+================================= Hops between two GPUs ==================================
+       GPU0         GPU1         GPU2         GPU3         GPU4         GPU5         GPU6         GPU7         
+GPU0   0            1            1            1            1            1            1            1            
+GPU1   1            0            1            1            1            1            1            1            
+GPU2   1            1            0            1            1            1            1            1            
+GPU3   1            1            1            0            1            1            1            1            
+GPU4   1            1            1            1            0            1            1            1            
+GPU5   1            1            1            1            1            0            1            1            
+GPU6   1            1            1            1            1            1            0            1            
+GPU7   1            1            1            1            1            1            1            0            
+
+=============================== Link Type between two GPUs ===============================
+       GPU0         GPU1         GPU2         GPU3         GPU4         GPU5         GPU6         GPU7         
+GPU0   0            XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         
+GPU1   XGMI         0            XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         
+GPU2   XGMI         XGMI         0            XGMI         XGMI         XGMI         XGMI         XGMI         
+GPU3   XGMI         XGMI         XGMI         0            XGMI         XGMI         XGMI         XGMI         
+GPU4   XGMI         XGMI         XGMI         XGMI         0            XGMI         XGMI         XGMI         
+GPU5   XGMI         XGMI         XGMI         XGMI         XGMI         0            XGMI         XGMI         
+GPU6   XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         0            XGMI         
+GPU7   XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         XGMI         0            
+
+======================================= Numa Nodes =======================================
+GPU[0]          : (Topology) Numa Node: 0
+GPU[0]          : (Topology) Numa Affinity: 0
+GPU[1]          : (Topology) Numa Node: 0
+GPU[1]          : (Topology) Numa Affinity: 0
+GPU[2]          : (Topology) Numa Node: 0
+GPU[2]          : (Topology) Numa Affinity: 0
+GPU[3]          : (Topology) Numa Node: 0
+GPU[3]          : (Topology) Numa Affinity: 0
+GPU[4]          : (Topology) Numa Node: 1
+GPU[4]          : (Topology) Numa Affinity: 1
+GPU[5]          : (Topology) Numa Node: 1
+GPU[5]          : (Topology) Numa Affinity: 1
+GPU[6]          : (Topology) Numa Node: 1
+GPU[6]          : (Topology) Numa Affinity: 1
+GPU[7]          : (Topology) Numa Node: 1
+GPU[7]          : (Topology) Numa Affinity: 1
+================================== End of ROCm SMI Log ===================================
+
+
+#################### No 1: Create a new DOKS
+
+
+doctl kubernetes cluster create rs-rccl-test \
+  --region atl1 \
+  --version 1.33.6-do.0 \
+  --node-pool "name=rs-rccl-cpu-pool;size=s-4vcpu-8gb-amd;count=2" \
+  --node-pool "name=rs-rccl-gpu-pool;size=gpu-mi325x8-2048gb-fabric-contracted;count=3" \
+  --tag "rs-test" 
+
+doctl kube cluster list
+doctl kube cluster delete rs-rccl-test
+
+# Image
+
+1.34.1-do.0-pr-private-preview-rocm-7.0.2
+1.33.6-do.0
+1.34.1-do.1
+
+# Slug
+
+gpu-mi325x8-2048gb-fabric-contracted
+gpu-mi325x8-2048gb-contracted
+gpu-mi350x8-2304gb-fabric-contracted
+gpu-mi350x8-2304gb-contracted
+
+# VPC
+
+  --vpc-uuid d7489d54-76ff-47b6-b214-2162e69c52a2 \
