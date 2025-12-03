@@ -1,16 +1,13 @@
 
-
+MI325X, ROCm 6, DOKS 1.33.6-do.0
 
 #################### Check
 
 # Operator logs
 kubectl -n mpi-operator logs deployment/mpi-operator
 
-# The MPI job - launcher logs
+# The MPI job - launcher logs (the test result)
 kubectl logs -f mpi-multus-gfx942-launcher-l2smb
-
-
-
 
 #################### Create the MPI job
 
