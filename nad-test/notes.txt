@@ -1,0 +1,59 @@
+
+NetworkAttachmentDefinitions (NADs) just define the network mapping (not perform the actual attachment themselves). Pods reference these NADs in their annotations to map host interfaces to container interfaces (host interface → NAD → pod interface).
+NADs can be created in any namespace, provided they are accessible to the Multus CNI plugin when the pods are created, and each NAD only needs to be defined once.
+https://www.cni.dev/plugins/current/main/host-device/
+
+##### The test
+
+Create the NetworkAttachmentDefinitions (NADs) in the test namespace.
+Specify the namespace when referencing the NADs in the pod annotations.
+Run the RCCL test in the default namespace.
+
+
+##### Create the test namespace
+
+kubectl create namespace test
+kubectl get namespace
+
+##### Create the NADs in the test namespace
+
+kubectl -n test apply -f network-attachments.yaml
+kubectl -n test describe  network-attachment-definitions
+
+
+##### Specify the namespace when referencing NADs in the pod annotations (rccl-test-mi350x.yaml)
+
+          annotations:
+            k8s.v1.cni.cncf.io/networks: >-
+              test/roce-net-fabric0@fabric0,
+              test/roce-net-fabric1@fabric1,
+              test/roce-net-fabric2@fabric2,
+              test/roce-net-fabric3@fabric3,
+              test/roce-net-fabric4@fabric4,
+              test/roce-net-fabric5@fabric5,
+              test/roce-net-fabric6@fabric6,
+              test/roce-net-fabric7@fabric7
+
+##### Run the RCCL test in the default namespace
+
+# kubectl apply -f  rccl-test-mi350x.yaml
+mpijob.kubeflow.org/mpi-multus-gfx950 created
+
+# kubectl get pods 
+NAME                               READY   STATUS    RESTARTS   AGE
+mpi-multus-gfx950-launcher-rcfjx   1/1     Running   0          91s
+mpi-multus-gfx950-worker-0         1/1     Running   0          91s
+mpi-multus-gfx950-worker-1         1/1     Running   0          91s
+
+# kubectl get pods
+NAME                               READY   STATUS      RESTARTS   AGE
+mpi-multus-gfx950-launcher-rcfjx   0/1     Completed   0          26m
+
+##### New DOKS 
+
+doctl kubernetes cluster create rs-cai-cni-test \
+  --region atl1 \
+  --version 1.34.1-do.1 \
+  --node-pool "name=rs-cai-cpu-pool;size=s-4vcpu-8gb-amd;count=2" \
+  --node-pool "name=rs-cai-gpu-pool;size=gpu-mi350x8-2304gb-fabric-contracted;count=2" \
+  --tag "rs-cai"
