@@ -1,0 +1,145 @@
+2 x MI325 + 2 x MI350, ROCm 7, 1.34.1-do.1
+
+#################### Create and delete the MPI jobs
+
+kubectl apply -f rccl-test-mi325x.yaml
+kubectl apply -f rccl-test-mi350x.yaml
+
+kubectl delete mpijob mpi-multus-gfx950
+kubectl delete mpijob mpi-multus-gfx942
+
+#################### MI350, ROCm 7
+
+kubectl apply -f rccl-test-mi350x.yaml
+kubectl delete mpijob mpi-multus-gfx950
+
+kubectl get pods
+
+kubectl get mpijob
+kubectl describe mpijob mpi-multus-gfx950
+
+kubectl logs mpi-multus-gfx950-launcher-d85hl           # Test Result
+kubectl logs mpi-multus-gfx950-worker-0 -c mpi-worker
+kubectl logs mpi-multus-gfx950-worker-1 -c mpi-worker
+
+kubectl exec -it mpi-multus-gfx950-worker-0 -- /bin/bash
+kubectl exec -it mpi-multus-gfx950-worker-1 -- /bin/bash
+
+#################### MI325, ROCm 7
+
+kubectl apply -f  rccl-test-mi325x.yaml
+kubectl delete mpijob mpi-multus-gfx942
+
+kubectl get pods
+
+kubectl get mpijob
+kubectl describe mpijob mpi-multus-gfx942
+
+kubectl logs mpi-multus-gfx942-launcher-8vpnf           # Test Result
+kubectl logs mpi-multus-gfx942-worker-0 -c mpi-worker
+kubectl logs mpi-multus-gfx942-worker-1 -c mpi-worker
+
+kubectl exec -it mpi-multus-gfx942-worker-0 -- /bin/bash
+
+#################### DOKS check
+
+kubectl -n mpi-operator logs deployment/mpi-operator
+
+kubectl get pods -n kube-system
+
+kubectl get pods -n mpi-operator
+kubectl -n mpi-operator logs deployment/mpi-operator (Single-Pod Deployment)
+
+#################### MPI Operator
+
+kubectl apply -f https://raw.githubusercontent.com/kubeflow/mpi-operator/v0.4.0/deploy/v2beta1/mpi-operator.yaml
+kubectl get pods -n mpi-operator
+kubectl -n mpi-operator logs deployment/mpi-operator (Single-Pod Deployment)
+
+# When you use the logs command on a Deployment, kubectl automatically targets the logs of a running Pod that is managed by that Deployment. Specifically, it usually targets:
+# A single pod if only one is running.
+# If multiple pods are running, it typically chooses the newest running pod.
+
+#################### Install the Multus CNI and create the network-attachment-definitions
+
+kubectl apply -f https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset-thick.yml
+kubectl get pods -n kube-system | grep multus
+kubectl -n kube-system describe daemonset kube-multus-ds
+
+kubectl apply -f network-attachments.yaml
+kubectl get network-attachment-definitions.k8s.cni.cncf.io -A
+kubectl get network-attachment-definitions
+
+#################### Host check
+
+
+ibv_devices
+
+ibv_devinfo -l #  Print information about RDMA devices available for use from userspace.
+ibv_devinfo -d ionic_0
+
+show_gids
+ibv_devinfo -v | grep GID
+
+rdma link
+
+ls /sys/class/infiniband/
+ibv_devinfo -v | grep GID
+
+cat /etc/os-release 
+
+
+
+##### ping
+
+ping6 -I fabric0 fe80::490:81ff:fe4c:1af0
+ping6 -I fabric7 fe80::490:81ff:fe4b:f888
+
+ping6 -c 3 fe80::3825:f3ff:fe37:712c%fabric0
+ping6 -c 3 -I fabric0 fe80::3825:f3ff:fe37:712c
+ip neigh show dev fabric0
+
+ping6 <PEER_IPV6_ADDRESS>%<LOCAL_INFERFACE_NAME>
+ping6 -I <LOCAL_INFERFACE_NAME> <PEER_IPV6_ADDRESS>
+
+##### rping
+
+rping is a userspace testing tool for RDMA (Remote Direct Memory Access). 
+It is commonly used to verify that RoCE/RDMA networking between two nodes is working correctly.
+
+# server
+
+rping -s -a :: -v
+rping -s -a :: -v -P
+
+-s, server mode
+-a, ipv6 on all interface
+-v, verbose output
+-P, continously listening for multiple client connections
+
+# client
+
+rping -C 5 -c -a fe80::3825:f3ff:fe37:712c%fabric0 -v
+rping -C 5 -c -a fe80::3825:f3ff:fe37:7094%fabric7 -v
+
+-c, client mode
+-a %, target address and local inferface
+-C or --count, number of times
+
+#################### Prepare the image: ROCm7, 325
+
+rocminfo | grep gfx
+
+docker image build -t docker.io/richardxgf/amd:rccl-test-325-rocm7 -f Dockerfile.325.rocm7 . 
+docker image ls                                                                                                                                                        i Info →   U  In Use
+docker push docker.io/richardxgf/amd:rccl-test-325-rocm7
+
+#################### New DOKS
+
+doctl kubernetes cluster create rs-amd-heterogeneous-test \
+  --region atl1 \
+  --version 1.34.1-do.1 \
+  --node-pool "name=rs-fw-cpu-pool;size=s-4vcpu-8gb-amd;count=2" \
+  --node-pool "name=rs-fw-gpu-325-pool;size=gpu-mi325x8-2048gb-fabric-contracted;count=2" \
+  --node-pool "name=rs-fw-gpu-350-pool;size=gpu-mi350x8-2304gb-fabric-contracted;count=2" \
+  --tag "rs-test"

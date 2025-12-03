@@ -1,0 +1,77 @@
+Warning: Permanently added '[mpi-multus-gfx950-worker-0.mpi-multus-gfx950.default.svc]:2222' (ED25519) to the list of known hosts.
+Warning: Permanently added '[mpi-multus-gfx950-worker-1.mpi-multus-gfx950.default.svc]:2222' (ED25519) to the list of known hosts.
+# Collective test starting: all_reduce_perf
+# nThread 1 nGpus 1 minBytes 1073741824 maxBytes 17179869184 step: 2(factor) warmup iters: 5 iters: 100 agg iters: 1 validation: 1 graph: 0
+#
+rccl-tests: Version develop:6405c76
+# Using devices
+#  Rank  0 Group  0 Pid    129 on mpi-multus-gfx950-worker-0 device  0 [0000:83:00] AMD Radeon Graphics
+#  Rank  1 Group  0 Pid    130 on mpi-multus-gfx950-worker-0 device  1 [0000:8b:00] AMD Radeon Graphics
+#  Rank  2 Group  0 Pid    131 on mpi-multus-gfx950-worker-0 device  2 [0000:93:00] AMD Radeon Graphics
+#  Rank  3 Group  0 Pid    132 on mpi-multus-gfx950-worker-0 device  3 [0000:9b:00] AMD Radeon Graphics
+#  Rank  4 Group  0 Pid    133 on mpi-multus-gfx950-worker-0 device  4 [0000:a3:00] AMD Radeon Graphics
+#  Rank  5 Group  0 Pid    134 on mpi-multus-gfx950-worker-0 device  5 [0000:ab:00] AMD Radeon Graphics
+#  Rank  6 Group  0 Pid    135 on mpi-multus-gfx950-worker-0 device  6 [0000:b3:00] AMD Radeon Graphics
+#  Rank  7 Group  0 Pid    136 on mpi-multus-gfx950-worker-0 device  7 [0000:bb:00] AMD Radeon Graphics
+#  Rank  8 Group  0 Pid    129 on mpi-multus-gfx950-worker-1 device  0 [0000:83:00] AMD Radeon Graphics
+#  Rank  9 Group  0 Pid    130 on mpi-multus-gfx950-worker-1 device  1 [0000:8b:00] AMD Radeon Graphics
+#  Rank 10 Group  0 Pid    131 on mpi-multus-gfx950-worker-1 device  2 [0000:93:00] AMD Radeon Graphics
+#  Rank 11 Group  0 Pid    132 on mpi-multus-gfx950-worker-1 device  3 [0000:9b:00] AMD Radeon Graphics
+#  Rank 12 Group  0 Pid    133 on mpi-multus-gfx950-worker-1 device  4 [0000:a3:00] AMD Radeon Graphics
+#  Rank 13 Group  0 Pid    134 on mpi-multus-gfx950-worker-1 device  5 [0000:ab:00] AMD Radeon Graphics
+#  Rank 14 Group  0 Pid    135 on mpi-multus-gfx950-worker-1 device  6 [0000:b3:00] AMD Radeon Graphics
+#  Rank 15 Group  0 Pid    136 on mpi-multus-gfx950-worker-1 device  7 [0000:bb:00] AMD Radeon Graphics
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:129:129 [0] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:130:130 [1] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:131:131 [2] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:134:134 [5] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:132:132 [3] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:135:135 [6] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:136:136 [7] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:133:133 [4] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:134:134 [5] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:129:129 [0] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:135:135 [6] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:130:130 [1] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:136:136 [7] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:131:131 [2] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-0:129:129 [0] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+RCCL version : 2.27.7-develop:b1e680a
+HIP version  : 7.0.51831-7c9236b16
+ROCm version : 7.0.2.0-56-9428210
+Hostname     : mpi-multus-gfx950-worker-0
+Librccl path : /workspace/rccl/install/lib/librccl.so.1
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:132:132 [3] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+
+[2025-11-30 00:00:47] mpi-multus-gfx950-worker-1:133:133 [4] /workspace/rccl/build/release/hipify/src/init.cc:197 NCCL WARN Missing "iommu=pt" from kernel command line which can lead to system instablity or hang!
+#
+#                                                              out-of-place                       in-place          
+#       size         count      type   redop    root     time   algbw   busbw #wrong     time   algbw   busbw #wrong                               
+#        (B)    (elements)                               (us)  (GB/s)  (GB/s)            (us)  (GB/s)  (GB/s)                                      
+  1073741824     268435456     float     sum      -1   7880.5  136.25  255.47      0   7814.0  137.41  257.65      0
+  2147483648     536870912     float     sum      -1    11795  182.07  341.38      0    11784  182.23  341.69      0
+  4294967296    1073741824     float     sum      -1    23759  180.77  338.94      0    23730  180.99  339.36      0
+  8589934592    2147483648     float     sum      -1    47563  180.60  338.63      0    47626  180.36  338.18      0
+ 17179869184    4294967296     float     sum      -1    95379  180.12  337.73      0    95407  180.07  337.63      0
+# Errors with asterisks indicate errors that have exceeded the maximum threshold.
+# Out of bounds values : 0 OK
+# Avg bus bandwidth    : 322.665 
+#
+# Collective test concluded: all_reduce_perf
+
