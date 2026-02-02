@@ -1,0 +1,120 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vllm-server
+  template:
+    metadata:
+      labels:
+        app: vllm-server
+      annotations:
+        k8s.v1.cni.cncf.io/networks: >-
+          roce-net-fabric0@fabric0,
+          roce-net-fabric1@fabric1,
+          roce-net-fabric2@fabric2,
+          roce-net-fabric3@fabric3,
+          roce-net-fabric4@fabric4,
+          roce-net-fabric5@fabric5,
+          roce-net-fabric6@fabric6,
+          roce-net-fabric7@fabric7
+    spec:
+      hostIPC: true
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - key: amd.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: vllm-container
+        image: rocm/vllm:latest
+        
+        command: 
+        - bash
+        - -c
+        - |
+          set -ex
+          
+          echo "Installing RDMA dependencies..."
+          apt-get update
+          apt-get install -y libibverbs1 librdmacm1 infiniband-diags ibverbs-utils net-tools iproute2
+          
+          echo "Checking RDMA devices..."
+          ibv_devices || echo "No IB devices"
+                  
+          echo "🚀 Sleeping ..."
+          sleep infinity
+
+        env:
+
+        resources:
+          limits:
+            amd.com/gpu: 8
+            rdma/fabric0: 1
+            rdma/fabric1: 1
+            rdma/fabric2: 1
+            rdma/fabric3: 1
+            rdma/fabric4: 1
+            rdma/fabric5: 1
+            rdma/fabric6: 1
+            rdma/fabric7: 1
+          requests:
+            amd.com/gpu: 8
+            rdma/fabric0: 1
+            rdma/fabric1: 1
+            rdma/fabric2: 1
+            rdma/fabric3: 1
+            rdma/fabric4: 1
+            rdma/fabric5: 1
+            rdma/fabric6: 1
+            rdma/fabric7: 1
+
+        volumeMounts:
+        - name: shm
+          mountPath: /dev/shm
+        - name: dev-kfd
+          mountPath: /dev/kfd
+        - name: dev-dri
+          mountPath: /dev/dri
+        - name: dev-infiniband
+          mountPath: /dev/infiniband
+        - name: sys-class-infiniband
+          mountPath: /sys/class/infiniband
+          readOnly: true
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - IPC_LOCK
+            - SYS_PTRACE
+            - SYS_ADMIN
+          seccompProfile:
+            type: Unconfined
+
+      securityContext:
+        supplementalGroups:
+        - 44  
+
+      volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 64Gi
+      - name: dev-kfd
+        hostPath:
+          path: /dev/kfd
+      - name: dev-dri
+        hostPath:
+          path: /dev/dri
+      - name: dev-infiniband
+        hostPath:
+          path: /dev/infiniband
+      - name: sys-class-infiniband
+        hostPath:
+          path: /sys/class/infiniband
